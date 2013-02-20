@@ -20,7 +20,8 @@ module Helpers
                           "data-rating" => avg,
                           "data-id" => rateable_obj.id,
                           "data-classname" => rateable_obj.class.name,
-                          "data-star-count" => star
+                          "data-star-count" => star,
+                          "data-readonly" => options[:readonly]
   end
 end
 

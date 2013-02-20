@@ -3,26 +3,46 @@ module Letsrate
   extend ActiveSupport::Concern
 
   def rate(stars, user_id, dimension=nil)
-    if can_rate? user_id, dimension
-      ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction do
+      if has_rated? user_id, dimension
+        rating = existing_ratings(user_id, dimension).first
+        old_stars = rating.stars
+        rating.stars = stars
+        rating.save
+
+        a = average(dimension)
+        if a.qty == 1
+          a.avg = rating.stars
+        else
+          # "remove" old rating
+          a.avg = (a.avg * a.qty - old_stars) / (a.qty - 1)
+          a.qty = a.qty - 1
+          # "add" new rating
+          a.avg = (a.avg * a.qty + stars) / (a.qty + 1)
+          a.qty = a.qty + 1
+        end
+        a.save
+      else
         update_rate_average(stars, dimension)
         rates(dimension).create do |r|
           r.stars = stars
           r.rater_id = user_id
         end
       end
-    else
-      raise "User has already rated."
     end
   end
 
+  def existing_ratings(user_id, dimension=nil)
+    Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension)
+  end
+
   def has_rated?(user_id, dimension=nil)
-    Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).any?
+    existing_ratings(user_id, dimension).any?
   end
 
   def cancel_rating(user_id, dimension=nil)
     ActiveRecord::Base.transaction do
-      rating = Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).first
+      rating = existing_ratings(user_id, dimension).first
       a = average(dimension)
       if a.qty <= 1
         a.destroy
