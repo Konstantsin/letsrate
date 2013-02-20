@@ -10,8 +10,27 @@ module Letsrate
         r.save!
       end
       update_rate_average(stars, dimension)
+      self
     else
       raise "User has already rated."
+    end
+  end
+
+  def has_rated?(user_id, dimension=nil)
+    Rate.any?(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension)
+  end
+
+  def cancel_rating(user_id, dimension=nil)
+    ActiveRecord::Base.transaction do
+      Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).first.destroy
+      a = average(dimension)
+      if a.qty <= 1
+        a.destroy
+      else
+        a.avg = (a.avg * a.qty - stars) / (a.qty - 1)
+        a.qty = a.qty - 1
+        a.save
+      end
     end
   end
 
@@ -23,13 +42,12 @@ module Letsrate
         avg.avg = stars
         avg.qty = 1
         avg.dimension = dimension
-        avg.save!
       end
     else
       a = average(dimension)
       a.avg = (a.avg*a.qty + stars) / (a.qty+1)
       a.qty = a.qty + 1
-      a.save!
+      a.save
     end
   end
 
@@ -42,12 +60,7 @@ module Letsrate
   end
 
   def can_rate?(user_id, dimension=nil)
-    val = self.connection.select_value("select count(*) as cnt from rates where rateable_id=#{self.id} and rateable_type='#{self.class.name}' and rater_id=#{user_id} and dimension='#{dimension}'").to_i
-    if val == 0
-      true
-    else
-      false
-    end
+    ! has_rated?(user_id, dimension)
   end
 
   def rates(dimension=nil)
