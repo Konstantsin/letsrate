@@ -4,13 +4,13 @@ module Letsrate
 
   def rate(stars, user_id, dimension=nil)
     if can_rate? user_id, dimension
-      rates(dimension).build do |r|
-        r.stars = stars
-        r.rater_id = user_id
-        r.save!
+      ActiveRecord::Base.transaction do
+        update_rate_average(stars, dimension)
+        rates(dimension).create do |r|
+          r.stars = stars
+          r.rater_id = user_id
+        end
       end
-      update_rate_average(stars, dimension)
-      self
     else
       raise "User has already rated."
     end
