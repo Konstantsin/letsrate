@@ -22,15 +22,16 @@ module Letsrate
 
   def cancel_rating(user_id, dimension=nil)
     ActiveRecord::Base.transaction do
-      Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).first.destroy
+      rating = Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).first
       a = average(dimension)
       if a.qty <= 1
         a.destroy
       else
-        a.avg = (a.avg * a.qty - stars) / (a.qty - 1)
+        a.avg = (a.avg * a.qty - rating.stars) / (a.qty - 1)
         a.qty = a.qty - 1
         a.save
       end
+      rating.destroy
     end
   end
 
