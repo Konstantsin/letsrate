@@ -17,7 +17,7 @@ module Letsrate
   end
 
   def has_rated?(user_id, dimension=nil)
-    Rate.any?(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension)
+    Rate.where(rateable_id: self.id, rateable_type: self.class.name, rater_id: user_id, dimension: dimension).any?
   end
 
   def cancel_rating(user_id, dimension=nil)
