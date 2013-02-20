@@ -17,7 +17,7 @@ class LetsrateGenerator < Rails::Generators::NamedBase
   desc "model is creating..."
   def create_model
     model_file = File.join('app/models', "#{file_path}.rb")
-    raise "User model (#{model_file}) must exits." unless File.exists?(model_file)
+    raise "User model (#{model_file}) must exist." unless File.exists?(model_file)
     class_collisions 'Rate'
     template 'model.rb', File.join('app/models', "rate.rb")
     template 'cache_model.rb', File.join('app/models', "rating_cache.rb")
